@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<!-- Mirrored from web-az-tv.vercel.app/gen.html by HTTrack Website Copier/3.x [XR&CO'2014], Fri, 18 Jul 2025 07:14:51 GMT -->
+<!-- Added by HTTrack --><meta http-equiv="content-type" content="text/html;charset=utf-8" /><!-- /Added by HTTrack -->
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Gen Link</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background-color: #111;
+      color: #eee;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      margin: 0;
+      padding: 1rem;
+    }
+
+    h1 {
+      margin-bottom: 1rem;
+      font-size: 1.8rem;
+    }
+
+    button {
+      padding: 10px 20px;
+      background-color: #444;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: background-color 0.2s;
+      margin-top: 10px;
+    }
+
+    button:hover {
+      background-color: #666;
+    }
+
+    .usage {
+      margin-top: 1.5rem;
+      font-size: 1.2rem;
+      color: #00ff88;
+      word-break: break-all;
+      background-color: #222;
+      padding: 10px;
+      border-radius: 8px;
+      text-align: center;
+      user-select: all;
+    }
+
+    .error {
+      color: #ff4c4c;
+      margin-top: 1rem;
+    }
+
+    .hidden {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <h1>🎟️For OTT Nav.</h1>
+  <button onclick="generateToken()">Generate Url</button>
+
+  <div id="output" class="usage hidden"></div>
+  <button id="copyBtn" class="hidden" onclick="copyToClipboard()">📋 Copy</button>
+  <div id="error" class="error"></div>
+
+  <script>
+    const BASE_URL = "https://web-aztv.onrender.com/";
+    let currentTokenUrl = "";
+
+    async function generateToken() {
+      document.getElementById("output").textContent = "Generating...";
+      document.getElementById("output").classList.remove("hidden");
+      document.getElementById("error").textContent = "";
+      document.getElementById("copyBtn").classList.add("hidden");
+
+      try {
+        const response = await fetch('/api/token');
+        if (!response.ok) throw new Error("Token request failed");
+        const data = await response.json();
+
+        if (data.usage) {
+          currentTokenUrl = BASE_URL + data.usage;
+          document.getElementById("output").textContent = currentTokenUrl;
+          document.getElementById("copyBtn").classList.remove("hidden");
+        } else {
+          throw new Error("No usage data returned");
+        }
+      } catch (err) {
+        document.getElementById("output").textContent = "";
+        document.getElementById("output").classList.add("hidden");
+        document.getElementById("copyBtn").classList.add("hidden");
+        document.getElementById("error").textContent = "❌ " + err.message;
+      }
+    }
+
+    function copyToClipboard() {
+      navigator.clipboard.writeText(currentTokenUrl).then(() => {
+        document.getElementById("copyBtn").textContent = "✅ Copied! Paste it to OTT";
+        setTimeout(() => {
+          document.getElementById("copyBtn").textContent = "📋 Copy";
+        }, 1500);
+      });
+    }
+  </script>
+</body>
+
+<!-- Mirrored from web-az-tv.vercel.app/gen.html by HTTrack Website Copier/3.x [XR&CO'2014], Fri, 18 Jul 2025 07:14:51 GMT -->
+</html>

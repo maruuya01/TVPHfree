@@ -1,76 +1,85 @@
 import express from 'express';
-import cors from 'cors';
 import crypto from 'crypto';
-import path from 'path';
-import { fileURLToPath } from 'url';
+import cors from 'cors';
 
 const app = express();
-const port = process.env.PORT || 3000;
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+const PORT = process.env.PORT || 3000;
 
 app.use(cors());
-app.use(express.static(path.join(__dirname, 'public')));
 
-// In-memory token store with expiration
-const tokens = new Map(); // token => expiration
+// In-memory token store
+const validTokens = new Map();
 
-// Token generator
-function generateToken() {
-  return crypto.randomBytes(8).toString('hex'); // 16-char token
-}
-
-// TTL for tokens (10 minutes)
-const TOKEN_LIFESPAN_MS = 10 * 60 * 1000;
-
-// Cleanup expired tokens
-setInterval(() => {
-  const now = Date.now();
-  for (const [token, expiresAt] of tokens.entries()) {
-    if (now > expiresAt) tokens.delete(token);
+const channels = {
+  bbcearth: {
+    name: 'BBC Earth',
+    type: 'mpd',
+    url: 'https://qp-pldt-live-grp-03-prod.akamaized.net/out/u/cg_bbcearth_hd1.mpd'
+  },
+  dreamworks: {
+    name: 'Dreamworks HD',
+    type: 'mpd',
+    url: 'https://qp-pldt-live-grp-02-prod.akamaized.net/out/u/cg_dreamworks_hd1.mpd'
+  },
+  fashiontv: {
+    name: 'Fashion TV',
+    type: 'mpd',
+    url: 'https://qp-pldt-live-grp-11-prod.akamaized.net/out/u/dr_fashiontvhd.mpd'
+  },
+  rckentr: {
+    name: 'Rock Entertainment',
+    type: 'mpd',
+    url: 'https://qp-pldt-live-grp-13-prod.akamaized.net/out/u/dr_rockentertainment.mpd'
+  },
+  amznmovie: {
+    name: 'Amazon Movies',
+    type: 'mpd',
+    url: 'https://.../cenc.mpd'
+  },
+  hitsnow: {
+    name: 'Hits HD',
+    type: 'mpd',
+    url: 'https://.../default_ott.mpd'
+  },
+  kix: {
+    name: 'Kix HD',
+    type: 'mpd',
+    url: 'https://.../kix_hd1.mpd'
+  },
+  history: {
+    name: 'History',
+    type: 'mpd',
+    url: 'https://.../dr_historyhd.mpd'
+  },
+  nbcsprts: {
+    name: 'NBC Sports',
+    type: 'mpd',
+    url: 'https://.../master.mpd'
   }
-}, 60_000); // check every 60s
+};
 
-// Generate token route
 app.get('/api/token', (req, res) => {
-  const token = generateToken();
-  const expiresAt = Date.now() + TOKEN_LIFESPAN_MS;
-  tokens.set(token, expiresAt);
+  const token = crypto.randomBytes(8).toString('hex');
+  validTokens.set(token, Date.now());
   res.json({ usage: `/playlist?token=${token}` });
 });
 
-// Playlist route
 app.get('/playlist', (req, res) => {
-  const { token } = req.query;
-  if (!token || !tokens.has(token)) {
-    return res.status(401).send('❌ Invalid or expired token');
+  const { token, id } = req.query;
+
+  if (!token || !validTokens.has(token)) {
+    return res.status(403).send('Invalid or missing token');
   }
 
-  // Optional: consume token (one-time use)
-  tokens.delete(token);
-
-  // Respond with a dummy M3U8 or MPD playlist (edit as needed)
-  const playlistType = req.query.type || 'm3u8'; // ?type=mpd or m3u8
-
-  if (playlistType === 'mpd') {
-    res.set('Content-Type', 'application/dash+xml');
-    return res.send(`<?xml version="1.0"?>
-<MPD xmlns="urn:mpeg:dash:schema:mpd:2011" type="static" mediaPresentationDuration="PT0H1M0.00S" minBufferTime="PT1.5S">
-  <!-- Replace this with your real MPD content -->
-</MPD>`);
-  } else {
-    res.set('Content-Type', 'application/vnd.apple.mpegurl');
-    return res.send(`#EXTM3U
-#EXT-X-VERSION:3
-#EXT-X-STREAM-INF:BANDWIDTH=800000,RESOLUTION=640x360
-https://example.com/stream360.m3u8
-#EXT-X-STREAM-INF:BANDWIDTH=1400000,RESOLUTION=1280x720
-https://example.com/stream720.m3u8`);
+  if (!id || !channels[id]) {
+    return res.status(404).send('Channel not found');
   }
+
+  validTokens.delete(token);
+
+  res.redirect(channels[id].url);
 });
 
-// Start server
-app.listen(port, () => {
-  console.log(`✅ Server running on http://localhost:${port}`);
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
 });

@@ -324,3 +324,310 @@
 
 
 </html>
+
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="robots" content="noindex, nofollow">
+  <title>MaruyaTV Official</title>
+
+  <!-- Firebase & Fonts -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700&display=swap" rel="stylesheet">
+
+  <style>
+    body {
+      background-color: black;
+      color: white;
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+    }
+
+    body::after {
+      content: 'MaruyaTV Official';
+      position: fixed;
+      bottom: 10px;
+      right: 10px;
+      color: rgba(255, 255, 255, 0.2);
+      font-size: 14px;
+      z-index: 9999;
+      pointer-events: none;
+    }
+
+    #splash {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      background-color: #000;
+      font-size: 2em;
+    }
+
+    #sidebar {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 220px;
+      background-color: rgba(0,0,0,0.9);
+      padding: 10px;
+      overflow-y: auto;
+      max-height: 100vh;
+      z-index: 100;
+      display: block;
+    }
+
+    #sidebar.hidden {
+      display: none;
+    }
+
+    #sidebar h2 {
+      margin-top: 0;
+    }
+
+    #channelSearch {
+      width: 100%;
+      padding: 8px;
+      margin-bottom: 10px;
+      border-radius: 4px;
+      border: none;
+      box-sizing: border-box;
+    }
+
+    #channelList button {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin: 5px 0;
+      background: #333;
+      color: white;
+      border: none;
+      padding: 10px;
+      cursor: pointer;
+      width: 100%;
+      text-align: left;
+      border-radius: 4px;
+    }
+
+    #channelList button:hover {
+      background: #555;
+    }
+
+    #channelList button.active {
+      background-color: #4CAF50;
+    }
+
+    #channelList img {
+      width: 24px;
+      height: 24px;
+      object-fit: contain;
+    }
+
+    #main {
+      margin-left: 220px;
+      padding: 10px;
+    }
+
+    #main.full {
+      margin-left: 0;
+    }
+
+    header h1 {
+      margin: 0;
+      font-size: 1.5em;
+    }
+
+    #toggleSidebar {
+      background-color: #222;
+      color: white;
+      border: none;
+      padding: 10px;
+      margin-bottom: 10px;
+      cursor: pointer;
+    }
+
+    #video-container {
+  position: relative;
+  width: 100%;
+  height: calc(100vh - 50px); /* Keeps height matching the rest */
+}
+
+#video-container video {
+  width: 100%;
+  height: 100%;
+  display: block;
+  background: black;
+}
+
+#robot-clock {
+  position: absolute;
+  top: 10px;
+  right: 32px;
+  z-index: 10;
+
+  font-family: 'Orbitron', sans-serif;
+  font-size: 1.8em;
+  color: #00ffe7;
+  background: rgba(0, 0, 0, 0.8);
+  border: 3px solid #00ffe7;
+  border-radius: 10px;
+  padding: 5px 15px;
+  letter-spacing: 3px;
+  box-shadow: 0 0 8px #00ffe7, 0 0 20px #00ffe7;
+  text-shadow: 0 0 5px #00ffe7, 0 0 10px #00ffe7;
+}
+
+  </style>
+</head>
+<body oncontextmenu="return false">
+
+  <div id="splash">Loading Maruya TV Web App...</div>
+
+  <div id="sidebar">
+    <h2>📺 Channels</h2>
+    <input type="text" id="channelSearch" placeholder="Search channels..." />
+    <div id="channelList"></div>
+  </div>
+
+  <div id="main">
+    <button id="toggleSidebar">☰ Channels</button>
+    <center><header><h1>MARUYA TV WEB APP</h1></header></center>
+
+    <!-- Video player with robotic clock -->
+    <div id="video-container">
+      <div id="robot-clock">00:00:00</div>
+      <video id="video" autoplay controls></video>
+    </div>
+  </div>
+
+  <!-- Shaka Player -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/shaka-player/4.3.5/shaka-player.compiled.min.js"></script>
+
+  <!-- Channel logic -->
+  <script>
+    const player = new shaka.Player(document.getElementById('video'));
+    const sidebar = document.getElementById('sidebar');
+    const main = document.getElementById('main');
+    const toggleButton = document.getElementById('toggleSidebar');
+    let activeButton = null;
+    let channels = [];
+
+    toggleButton.onclick = () => {
+      sidebar.classList.toggle('hidden');
+      main.classList.toggle('full');
+    };
+
+    function createChannelButton(channel) {
+      const btn = document.createElement('button');
+      const logo = document.createElement('img');
+      logo.src = channel.logo;
+      logo.alt = channel.name;
+      const label = document.createElement('span');
+      label.innerText = channel.name;
+      btn.appendChild(logo);
+      btn.appendChild(label);
+      btn.onclick = () => {
+        if (activeButton) activeButton.classList.remove('active');
+        btn.classList.add('active');
+        activeButton = btn;
+        loadChannel(channel);
+      };
+      return btn;
+    }
+
+    function renderChannelList(filteredChannels) {
+      const list = document.getElementById('channelList');
+      list.innerHTML = '';
+      filteredChannels.forEach(channel => {
+        const btn = createChannelButton(channel);
+        list.appendChild(btn);
+      });
+
+      if (filteredChannels.length) {
+        const firstButton = list.querySelector('button');
+        if (firstButton) {
+          firstButton.classList.add('active');
+          activeButton = firstButton;
+          loadChannel(filteredChannels[0]);
+        }
+      }
+    }
+
+    async function loadChannels() {
+      try {
+        const res = await fetch('ch.js'); //channels.json
+        channels = await res.json();
+        renderChannelList(channels);
+      } catch (e) {
+        console.error('Failed to load channel list', e);
+        alert('Failed to load channel list');
+      }
+    }
+
+    function loadChannel(channel) {
+      const drmConfig = {
+        clearKeys: {
+          [channel.keyId]: channel.key
+        }
+      };
+
+      player.configure({ drm: drmConfig });
+      player.load(channel.url).then(() => {
+        console.log(`Playing: ${channel.name}`);
+      }).catch(error => {
+        console.error('Error loading channel:', error);
+        alert(`Failed to load channel: ${channel.name}`);
+      });
+    }
+
+    document.addEventListener('input', (event) => {
+      if (event.target.id === 'channelSearch') {
+        const query = event.target.value.toLowerCase();
+        const filtered = channels.filter(channel => channel.name.toLowerCase().includes(query));
+        renderChannelList(filtered);
+      }
+    });
+
+    loadChannels();
+
+    window.addEventListener('load', () => {
+      const splash = document.getElementById('splash');
+      if (splash) splash.style.display = 'none';
+    });
+
+    document.addEventListener('keydown', (e) => {
+      if (
+        e.key === 'F12' ||
+        (e.ctrlKey && e.shiftKey && ['I', 'J', 'C'].includes(e.key)) ||
+        (e.ctrlKey && e.key === 'U')
+      ) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+    });
+  </script>
+
+  <!-- Robotic Clock Script -->
+<script>
+  function updateClock() {
+    const now = new Date();
+    const hours = String(now.getHours()).padStart(2, '0');
+    const minutes = String(now.getMinutes()).padStart(2, '0');
+    const seconds = String(now.getSeconds()).padStart(2, '0');
+    document.getElementById('robot-clock').textContent = `${hours}:${minutes}:${seconds}`;
+  }
+
+  setInterval(updateClock, 1000);
+  updateClock();
+</script>
+
+
+</body>
+</html>

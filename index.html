@@ -233,7 +233,7 @@
 
     async function loadChannels() {
       try {
-        const res = await fetch('clearkey_channels.json');
+        const res = await fetch('channels.json');
         channels = await res.json();
         renderChannelList(channels);
       } catch (e) {

@@ -1,14 +1,19 @@
-//token.js
+import fetch from 'node-fetch';
 
-export default function handler(req, res) {
-  const randomToken = Math.random().toString(36).substring(2, 12);
-  const usage = `ott-playback/${randomToken}`;
+const UPSTASH_URL = process.env.UPSTASH_REDIS_REST_URL;
+const UPSTASH_TOKEN = process.env.UPSTASH_REDIS_REST_TOKEN;
 
-  // ✅ Add CORS headers
-res.setHeader('Access-Control-Allow-Origin', 'https://tvphfree.pages.dev');
- // or replace * with your frontend domain
-  res.setHeader('Access-Control-Allow-Methods', 'GET');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+export default async function handler(req, res) {
+  const token = Math.random().toString(36).substring(2, 10);
+  const expires = Date.now() + 1000 * 60 * 5;
 
-  res.status(200).json({ usage });
+  await fetch(`${UPSTASH_URL}/set/${token}/${expires}`, {
+    headers: {
+      Authorization: `Bearer ${UPSTASH_TOKEN}`
+    }
+  });
+
+  res.status(200).json({
+    usage: `playlist.m3u8?token=${token}`
+  });
 }

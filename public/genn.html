@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>OTT Playlist Generator</title>
+  <style>
+    body { background: #121212; color: #fff; font-family: Arial, sans-serif; padding: 30px; }
+    button { background: #e53935; color: #fff; padding: 12px 20px; border: none; border-radius: 5px; cursor: pointer; }
+    #linkBox { margin-top: 20px; padding: 10px; background: #222; border-radius: 6px; word-break: break-all; }
+    #copyBtn { margin-top: 10px; display: none; }
+  </style>
+</head>
+<body>
+  <h1>📺 Generate M3U Playlist Link</h1>
+  <button onclick="generate()">Generate</button>
+  <div id="linkBox"></div>
+  <button id="copyBtn" onclick="copyLink()">Copy to clipboard</button>
+
+  <script>
+    async function generate() {
+      try {
+        const res = await fetch('/api/token')
+        const data = await res.json()
+
+        if (!data.playlist) {
+          return document.getElementById('linkBox').innerText = `Error: ${data.error || 'Unknown'}`
+        }
+
+        window.generatedLink = data.playlist
+        document.getElementById('linkBox').innerHTML = `<a href="${data.playlist}" target="_blank">${data.playlist}</a>`
+        document.getElementById('copyBtn').style.display = 'inline-block'
+      } catch(e) {
+        document.getElementById('linkBox').innerText = 'Failed to fetch token endpoint.'
+      }
+    }
+
+    function copyLink() {
+      navigator.clipboard.writeText(window.generatedLink)
+      alert('Copied!')
+    }
+  </script>
+</body>
+</html>

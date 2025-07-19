@@ -1,115 +1,76 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Gen Link</title>
+  <meta charset="UTF-8">
+  <title>🎬 OTT Playlist Generator</title>
   <style>
     body {
+      background-color: #121212;
+      color: #fff;
       font-family: 'Segoe UI', sans-serif;
-      background-color: #111;
-      color: #eee;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      height: 100vh;
-      margin: 0;
-      padding: 1rem;
+      padding: 2rem;
+      max-width: 600px;
+      margin: auto;
     }
-
-    h1 {
-      margin-bottom: 1rem;
-      font-size: 1.8rem;
-    }
-
     button {
-      padding: 10px 20px;
-      background-color: #444;
-      color: white;
+      background-color: #e53935;
       border: none;
-      border-radius: 6px;
-      font-size: 1rem;
+      color: white;
+      padding: 12px 20px;
+      border-radius: 5px;
       cursor: pointer;
-      transition: background-color 0.2s;
-      margin-top: 10px;
+      font-size: 16px;
     }
-
-    button:hover {
-      background-color: #666;
-    }
-
-    .usage {
-      margin-top: 1.5rem;
-      font-size: 1.2rem;
-      color: #00ff88;
-      word-break: break-word;
-      background-color: #222;
-      padding: 10px;
+    #linkBox {
+      background-color: #1e1e1e;
+      padding: 1rem;
+      margin-top: 20px;
       border-radius: 8px;
-      text-align: center;
-      user-select: all;
+      word-break: break-word;
     }
-
-    .error {
-      color: #ff4c4c;
-      margin-top: 1rem;
-    }
-
-    .hidden {
+    #copyBtn {
+      margin-top: 10px;
       display: none;
+    }
+    a {
+      color: #64ffda;
     }
   </style>
 </head>
 <body>
-  <h1>🎟️For OTT Nav.</h1>
-  <button onclick="generateToken()">Generate Url</button>
+  <h1>📺 Generate Your M3U Playlist</h1>
+  <p>Click the button to get a temporary streaming link (valid for 5 minutes).</p>
 
-  <div id="output" class="usage hidden"></div>
-  <button id="copyBtn" class="hidden" onclick="copyToClipboard()">📋 Copy</button>
-  <div id="error" class="error"></div>
+  <button onclick="generate()">🔄 Generate Playlist Link</button>
+
+  <div id="linkBox"></div>
+  <button id="copyBtn" onclick="copyLink()">📋 Copy to Clipboard</button>
 
   <script>
-    const BASE_URL = "https://tvphfree.pages.dev/channels.json";
-    const API_URL = "https://tvp-hfree.vercel.app/api/token"; // ✅ replace with your actual deployed Vercel function URL
-    let currentTokenUrl = "";
-
-    async function generateToken() {
-      document.getElementById("output").textContent = "Generating...";
-      document.getElementById("output").classList.remove("hidden");
-      document.getElementById("error").textContent = "";
-      document.getElementById("copyBtn").classList.add("hidden");
-
+    async function generate() {
       try {
-        const response = await fetch(API_URL);
-        if (!response.ok) throw new Error("Token request failed");
+        const res = await fetch('/api/token');
+        const data = await res.json();
 
-        const data = await response.json();
-        if (data.usage) {
-          currentTokenUrl = BASE_URL + data.usage;
-          document.getElementById("output").textContent = currentTokenUrl;
-          document.getElementById("copyBtn").classList.remove("hidden");
-        } else {
-          throw new Error("No usage data returned");
+        if (!data.playlist) {
+          document.getElementById('linkBox').innerText = 'Error: ' + (data.error || 'Unknown');
+          return;
         }
-      } catch (err) {
-        document.getElementById("output").textContent = "";
-        document.getElementById("output").classList.add("hidden");
-        document.getElementById("copyBtn").classList.add("hidden");
-        document.getElementById("error").textContent = "❌ " + err.message;
+
+        const link = data.playlist;
+        window.generatedLink = link;
+
+        document.getElementById('linkBox').innerHTML = `<strong>Your M3U Link:</strong><br><a href="${link}" target="_blank">${link}</a>`;
+        document.getElementById('copyBtn').style.display = 'inline-block';
+      } catch (e) {
+        document.getElementById('linkBox').innerText = 'Failed to fetch token.';
       }
     }
 
-    function copyToClipboard() {
-      navigator.clipboard.writeText(currentTokenUrl).then(() => {
-        document.getElementById("copyBtn").textContent = "✅ Copied! Paste it to OTT";
-        setTimeout(() => {
-          document.getElementById("copyBtn").textContent = "📋 Copy";
-        }, 1500);
-      });
+    function copyLink() {
+      navigator.clipboard.writeText(window.generatedLink || '');
+      alert('Playlist link copied to clipboard!');
     }
   </script>
 </body>
-
 </html>
